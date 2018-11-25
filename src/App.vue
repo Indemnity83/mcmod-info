@@ -1,14 +1,31 @@
 <template>
-    <div id="app">
-        <h1>Choose one or more jar files</h1>
-        <button @click="clear">Clear Results</button>
-        <input ref="mod" type="file" name="mod" @change="update" multiple>
+    <div id="app" class="container">
 
-        <div v-for="file in files" :key="file.name">
-            <h2>{{ file.name }}</h2>
-            <p>{{ file.error }}</p>
-            <pre v-highlightjs="file.info" v-if="file.info"><code class="JSON"></code></pre>
+        <div class="alert alert-danger" v-if="errors">
+            {{ errors }}
+        </div>
 
+        <div class="form-group d-flex">
+            <div class="uploader mr-4">
+                <input ref="mod" type="file" name="mod" @change="update" multiple class="uploader-control">
+                <div class="btn btn-outline-dark">Select Mods</div>
+            </div>
+
+            <button class="btn btn-outline-dark" @click="clear">Clear Results</button>
+        </div>
+
+        <div class="card mb-4" v-for="file in files" :key="file.name">
+            <div class="card-header">
+                {{ file.name }}
+            </div>
+            <div
+                v-if="file.error"
+                class="mb-0 rounded-0 border-0 alert alert-danger"
+                role="alert">
+                {{ file.error }}
+            </div>
+
+            <pre class="mb-0 rounded-0" v-highlightjs="file.info" v-if="file.info"><code class="JSON"></code></pre>
         </div>
     </div>
 </template>
@@ -43,6 +60,8 @@ export default {
             for (let i = 0; i < files.length; i++) {
                 this.handleFile(files[i]);
             }
+
+            this.$refs.mod.value = null;
         },
 
         clear() {
@@ -86,10 +105,21 @@ export default {
 
 <style>
 #app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  color: #2c3e50;
-  margin-top: 20px;
+  margin-top: 30px;
+}
+
+.uploader {
+    position: relative;
+    border-radius: 0.25rem;
+    cursor: pointer !important;
+}
+
+.uploader-control {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    max-width: 100%;
+    opacity: 0;
+    z-index: 99;
 }
 </style>
