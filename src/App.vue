@@ -74,27 +74,48 @@ export default {
 
             JSZip.loadAsync(modFile)
                 .then(function(zip) {
-                    let mcmod = zip.file("mcmod.info");
 
-                    if(mcmod === null) {
-                        let parsedFile = {
-                            name: modFile.name,
-                            error: "missing mcmod.info file",
-                        };
+                    // Is it forge?
+                    let forge = zip.file("version.json");
+                    if(forge !== null) {
+                        forge.async("string")
+                            .then(function(info) {
+                                let parsedFile = {
+                                    name: modFile.name,
+                                    info: info,
+                                };
 
-                        self.files.push(parsedFile);
+                                self.files.push(parsedFile);
+                            });
+
                         return;
                     }
 
-                    mcmod.async("string")
-                        .then(function(info) {
-                            let parsedFile = {
-                                name: modFile.name,
-                                info: info,
-                            };
+                    // Is it a forge mod?
+                    let mcmod = zip.file("mcmod.info");
 
-                            self.files.push(parsedFile);
-                        });
+                    if(mcmod !== null) {
+                        mcmod.async("string")
+                            .then(function(info) {
+                                let parsedFile = {
+                                    name: modFile.name,
+                                    info: info,
+                                };
+
+                                self.files.push(parsedFile);
+                            });
+
+                        return;
+                    }
+
+                    // ¯\_(ツ)_/¯
+                    let parsedFile = {
+                        name: modFile.name,
+                        error: "Invalid file",
+                    };
+
+                    self.files.push(parsedFile);
+
                 }, function (e) {
                     self.errors.append("Error reading " + modFile.name + ": " + e.message);
                 });
