@@ -1,8 +1,15 @@
 <template>
     <div id="app">
-        <input ref="mod" type="file" name="mod" @change="update">
+        <h1>Choose one or more jar files</h1>
+        <button @click="clear">Clear Results</button>
+        <input ref="mod" type="file" name="mod" @change="update" multiple>
 
-        <pre v-highlightjs="info"><code class="JSON"></code></pre>
+        <div v-for="file in files" :key="file.name">
+            <h2>{{ file.name }}</h2>
+            <p>{{ file.error }}</p>
+            <pre v-highlightjs="file.info" v-if="file.info"><code class="JSON"></code></pre>
+
+        </div>
     </div>
 </template>
 
@@ -15,7 +22,6 @@ export default {
 
     data() {
         return {
-            info: null,
             files: [],
             errors: null,
         }
@@ -39,17 +45,39 @@ export default {
             }
         },
 
-        handleFile(file) {
+        clear() {
+            this.files = [];
+            this.$refs.mod.value = null;
+        },
+
+        handleFile(modFile) {
             let self = this;
 
-            JSZip.loadAsync(file)
+            JSZip.loadAsync(modFile)
                 .then(function(zip) {
-                    zip.file("mcmod.info").async("string")
+                    let mcmod = zip.file("mcmod.info");
+
+                    if(mcmod === null) {
+                        let parsedFile = {
+                            name: modFile.name,
+                            error: "missing mcmod.info file",
+                        };
+
+                        self.files.push(parsedFile);
+                        return;
+                    }
+
+                    mcmod.async("string")
                         .then(function(info) {
-                            self.info = info;
+                            let parsedFile = {
+                                name: modFile.name,
+                                info: info,
+                            };
+
+                            self.files.push(parsedFile);
                         });
                 }, function (e) {
-                    self.errors.append("Error reading " + file.name + ": " + e.message);
+                    self.errors.append("Error reading " + modFile.name + ": " + e.message);
                 });
         }
     }
@@ -62,6 +90,6 @@ export default {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
-  margin-top: 60px;
+  margin-top: 20px;
 }
 </style>
