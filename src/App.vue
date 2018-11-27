@@ -20,6 +20,7 @@
                 <thead>
                 <tr>
                     <th>&nbsp;</th>
+                    <th>&nbsp;</th>
                     <th>Filename</th>
                     <th>Name</th>
                     <th>Mod ID</th>
@@ -29,24 +30,33 @@
                 </thead>
                 <tbody>
                 <tr v-for="file in files" :key="file.name">
+                    <td class="align-middle">
+                        <i :class="[ file.errors.length > 0 ? 'text-danger fa-times' : 'text-success fa-check', 'fas']"></i>
+                    </td>
                     <td>
                         <img class="img-thumbnail" :src="file.mod.logoData" />
                     </td>
-                    <td class="table-fit">
+                    <td class="align-middle">
                         {{ file.name }}
                     </td>
-                    <td class="table-fit">
+                    <td colspan="3" v-if="file.errors.length > 0" class="align-middle text-danger">
+                        errors: {{ file.errors.join(', ') }}
+                    </td>
+                    <td v-if="file.errors.length === 0" class="align-middle">
                         {{ file.mod.name }}
                     </td>
-                    <td class="table-fit">
+                    <td v-if="file.errors.length === 0" class="align-middle">
                         {{ file.mod.modid }}
                     </td>
-                    <td class="table-fit">
+                    <td v-if="file.errors.length === 0" class="align-middle">
                         {{ file.mod.version }}
                     </td>
-                    <td class="text-right">
-                        <button class="btn btn-outline-dark btn-sm" @click="show = file">
+                    <td class="align-middle text-right text-nowrap">
+                        <button class="btn btn-outline-dark btn-sm" @click="show = file" v-if="file.infoFile !== null">
                             {{ file.infoFile }}
+                        </button>
+                        <button class="ml-2 btn btn-outline-danger btn-sm" @click="submitIssue(file)" v-if="file.errors.length > 0">
+                            Create GitHub Issue
                         </button>
                     </td>
                 </tr>
@@ -122,7 +132,7 @@
                             version: null,
                             logoData: null,
                         },
-                        error: null,
+                        errors: [],
                     };
 
                     // Is it forge?
@@ -132,14 +142,15 @@
                         forge.async("string")
                         .then(function(versionJson) {
                             try {
-                                let info = JSON.parse(versionJson);
                                 file.infoFile = "version.json";
                                 file.info = info;
+
+                                let info = JSON.parse(versionJson);
                                 file.mod.name = 'Minecraft Forge';
                                 file.mod.version = info.id;
                                 file.mod.modid = 'minecraftforge';
                             } catch (e) {
-                                file.error = e.message;
+                                file.errors.push(e.toString());
                             }
                         });
 
@@ -152,9 +163,10 @@
                         mcmod.async("string")
                         .then(function(mcmodInfo) {
                             try {
-                                let info = JSON.parse(mcmodInfo);
                                 file.infoFile = "mcmod.info";
                                 file.info = mcmodInfo;
+
+                                let info = JSON.parse(mcmodInfo);
 
                                 let mod = {name: null, version: null, modid: null};
                                 if(info.modListVersion === 2 || info.modInfoVersion === 2) {
@@ -167,14 +179,16 @@
                                 file.mod.version = mod.version;
                                 file.mod.modid = mod.modid;
 
-                                if(mod.logoFile !== null) {
+                                if(mod.logoFile !== null && mod.logoFile !== undefined) {
                                     let logoFile = zip.file(mod.logoFile.substring(1));
-                                    logoFile.async("base64").then(function(logoData) {
-                                        file.mod.logoData = "data:image/png;base64," + logoData
-                                    });
+                                    if(logoFile !== null) {
+                                        logoFile.async("base64").then(function(logoData) {
+                                            file.mod.logoData = "data:image/png;base64," + logoData
+                                        });
+                                    }
                                 }
                             } catch (e) {
-                                file.error = e.message;
+                                file.errors.push(e.toString());
                             }
                         });
                     }
@@ -182,9 +196,32 @@
                     self.files.push(file);
 
                 }, function (e) {
-                    self.errors.append("Error reading " + modFile.name + ": " + e.message);
+                    self.errors.push("Error reading " + modFile.name + ": " + e.message);
                 });
         },
+
+        submitIssue(file) {
+            let subject = encodeURIComponent('[Parse Fail] ' + file.name);
+            let body =
+                "### Parsed Data\n" +
+                "**Info File:** `" + file.infoFile + "`\n" +
+                "**name:** `" + file.mod.name + "`\n" +
+                "**modid:** `" + file.mod.modid + "`\n" +
+                "**version:** `" + file.mod.version + "`\n" +
+                "\n" +
+                "**errors:** \n" +
+                "1. " + file.errors.join("\n1. ") + "\n" +
+                "\n" +
+                "**mcmod.info contents**\n" +
+                "```json\n" +
+                file.info + "\n" +
+                "```"
+            ;
+
+            body = encodeURIComponent(body);
+
+            window.open(`https://github.com/indemnity83/mcmod-info/issues/new?title=${subject}&body=${body}`)
+        }
     }
 }
 </script>
