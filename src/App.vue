@@ -19,6 +19,7 @@
             <table class="table mb-0">
                 <thead>
                 <tr>
+                    <th>&nbsp;</th>
                     <th>Filename</th>
                     <th>Name</th>
                     <th>Mod ID</th>
@@ -28,6 +29,9 @@
                 </thead>
                 <tbody>
                 <tr v-for="file in files" :key="file.name">
+                    <td>
+                        <img class="img-thumbnail" :src="file.mod.logoData" />
+                    </td>
                     <td class="table-fit">
                         {{ file.name }}
                     </td>
@@ -116,6 +120,7 @@
                             name: null,
                             modid: null,
                             version: null,
+                            logoData: null,
                         },
                         error: null,
                     };
@@ -161,6 +166,13 @@
                                 file.mod.name = mod.name;
                                 file.mod.version = mod.version;
                                 file.mod.modid = mod.modid;
+
+                                if(mod.logoFile !== null) {
+                                    let logoFile = zip.file(mod.logoFile.substring(1));
+                                    logoFile.async("base64").then(function(logoData) {
+                                        file.mod.logoData = "data:image/png;base64," + logoData
+                                    });
+                                }
                             } catch (e) {
                                 file.error = e.message;
                             }
@@ -180,6 +192,10 @@
 <style>
 #app {
   margin-top: 30px;
+}
+
+.img-thumbnail {
+    border: none;
 }
 
 .uploader {
